@@ -47,6 +47,9 @@
         .button:hover {
             background-color: #45a049;
         }
+        .qr-code {
+            max-width: 100px; /* Adjust the size of the QR code */
+        }
     </style>
 </head>
 <body>
@@ -58,6 +61,7 @@
             <th>Organization</th>
             <th>Phone</th>
             <th>Email</th>
+            <th>QR Code</th> <!-- New column -->
             <th>Action</th>
         </tr>
         {% for index, participant in data.iterrows() %}
@@ -66,6 +70,7 @@
             <td>{{ participant['Organization'] }}</td>
             <td>{{ participant['Phone'] }}</td>
             <td>{{ participant['Email'] }}</td>
+            <td><img src="{{ url_for('static', filename=participant['QR_Code']) }}" alt="QR Code" class="qr-code"></td> <!-- Display the QR code -->
             <td><a href="/delete/{{ index }}" class="button">Delete</a></td>
         </tr>
         {% endfor %}
