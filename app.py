@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 import os
 import pandas as pd
 import qrcode
@@ -14,14 +14,13 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Global variable to store registration data
-registration_data = pd.DataFrame()
+registration_data = pd.DataFrame(columns=['Name', 'Organization', 'QR_Code'])  # Initialize as empty DataFrame
 
 # Define the allowed extensions for uploaded files
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 
 @app.route('/', methods=['GET', 'POST'])
 def register():
-    global registration_data
     if request.method == 'POST':
         name = request.form['name']
         organization = request.form.get('organization', '')  # Get organization if provided
@@ -33,14 +32,16 @@ def register():
         participant_data = pd.DataFrame({'Name': [name], 'Organization': [organization], 'QR_Code': [qr_filename]})
         
         # Append participant data to registration_data
-        registration_data = pd.concat([registration_data, participant_data], ignore_index=True)
+        global registration_data
+        registration_data = registration_data.append(participant_data, ignore_index=True)
         
         return render_template('thank_you.html', qr_filename=qr_filename)
     return render_template('register.html')
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
-    global registration_data
+    global registration_data  # Declare registration_data as global
+    
     if request.method == 'POST':
         # Handle file upload
         uploaded_file = request.files['file']
@@ -59,7 +60,8 @@ def admin():
                     # Generate QR code for each participant and save it
                     for index, row in excel_data.iterrows():
                         qr_filename = generate_qr_code(row['Name'], row.get('Organization', ''))
-                        registration_data = registration_data.append({'Name': row['Name'], 'Organization': row.get('Organization', ''), 'QR_Code': qr_filename}, ignore_index=True)
+                        participant_data = pd.DataFrame({'Name': [row['Name']], 'Organization': [row.get('Organization', '')], 'QR_Code': [qr_filename]})
+                        registration_data = pd.concat([registration_data, participant_data], ignore_index=True)
                     
                     return redirect(url_for('admin'))
                 except Exception as e:
@@ -80,6 +82,12 @@ def delete_participant(index):
 @app.route('/scanner', methods=['GET'])
 def scanner():
     return render_template('scanner.html')
+
+@app.route('/process_scanned_data', methods=['POST'])
+def process_scanned_data():
+    scanned_data = request.json.get('data')  # Get the scanned data from the request
+    # Process the scanned data as needed
+    return jsonify({'message': 'Scanned data received successfully'})
 
 def generate_qr_code(name, organization=''):
     # Construct participant information

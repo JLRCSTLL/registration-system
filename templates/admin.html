@@ -55,6 +55,10 @@
 <body>
     <h1>Participant Registrations</h1>
     <a href="/scanner" class="button">Scan QR Code</a> <!-- New button -->
+    <form action="/admin" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".xlsx, .xls">
+        <input type="submit" value="Upload Excel" class="button">
+    </form>
     <table>
         <tr>
             <th>Name</th>

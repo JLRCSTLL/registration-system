@@ -5,106 +5,87 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Code Scanner</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-        .scanner-container {
-            text-align: center;
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
-        }
-        #qr-video {
-            width: 100%;
-            max-width: 400px;
-            margin-bottom: 20px;
-        }
-        #qr-canvas {
-            display: none;
-        }
-        #scanner-results {
-            margin-top: 20px;
-        }
-        .button {
-            background-color: #4CAF50;
-            border: none;
-            color: white;
-            padding: 8px 20px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            margin-top: 20px;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-        .button:hover {
-            background-color: #45a049;
+        .scanner-frame {
+            position: absolute;
+            border: 2px solid red; /* Adjust border color and width as needed */
+            pointer-events: none; /* Make the frame not clickable */
         }
     </style>
 </head>
 <body>
-    <div class="scanner-container">
-        <h1>Scan QR Code</h1>
-        <video id="qr-video" autoplay playsinline></video>
-        <canvas id="qr-canvas" width="400" height="400"></canvas>
-        <div id="scanner-results"></div>
-        <button onclick="startScanner()" class="button">Start Scanner</button>
-    </div>
+    <h1>Scan QR Code</h1>
+    <video id="preview" width="50%" height="50%"></video>
+    <canvas id="qr-canvas" style="display: none;"></canvas>
 
-    <script src="https://rawgit.com/sitepoint-editors/jsqrcode/master/src/qr_packed.js"></script>
+    <!-- Add a frame that follows the QR code -->
+    <div id="frame" class="scanner-frame"></div>
+
+    <div id="scanned-data"></div> <!-- Container to display scanned data -->
+
+    <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
     <script>
-        const video = document.getElementById('qr-video');
-        const canvasElement = document.getElementById('qr-canvas');
-        const canvas = canvasElement.getContext('2d');
+        let scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
+        scanner.addListener('scan', function (content) {
+            displayScannedData(content); // Call function to display scanned data
+            sendScannedData(content); // Call function to send scanned data to Flask backend
+        });
+        Instascan.Camera.getCameras().then(function (cameras) {
+            if (cameras.length > 0) {
+                scanner.start(cameras[0]);
+            } else {
+                console.error('No cameras found.');
+            }
+        }).catch(function (e) {
+            console.error(e);
+        });
 
-        let scanning = false;
+        // Function to draw a frame around the QR code
+        function drawFrame() {
+            let video = document.getElementById('preview');
+            let frame = document.getElementById('frame');
 
-        function startScanner() {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-                .then(function (stream) {
-                    scanning = true;
-                    video.srcObject = stream;
-                    video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
-                    video.play();
-                    requestAnimationFrame(tick);
-                })
-                .catch(function (error) {
-                    console.error('Error accessing camera:', error);
-                });
+            // Calculate the size of the frame to fit just the QR code
+            let frameSize = Math.min(video.videoWidth, video.videoHeight) * 0.8; // Use 80% of video dimensions
+
+            // Calculate the position of the frame
+            let leftOffset = (video.videoWidth - frameSize) / 2;
+            let topOffset = (video.videoHeight - frameSize) / 2;
+
+            // Set the position and size of the frame
+            frame.style.left = leftOffset + 'px';
+            frame.style.top = topOffset + 'px';
+            frame.style.width = frameSize + 'px';
+            frame.style.height = frameSize + 'px';
+
+            // Resize the video element to a square
+            video.style.width = frameSize + 'px';
+            video.style.height = frameSize + 'px';
         }
 
-        function tick() {
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                canvasElement.height = video.videoHeight;
-                canvasElement.width = video.videoWidth;
-                canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
-                const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
-                const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                    inversionAttempts: "dontInvert",
-                });
-                if (code) {
-                    scanning = false;
-                    document.getElementById('scanner-results').innerText = 'QR Code scanned: ' + code.data;
-                    // Handle the scanned QR code data here (e.g., redirect to a specific page)
-                    // window.location.href = '/scan-result?data=' + encodeURIComponent(code.data);
-                } else {
-                    if (scanning) {
-                        requestAnimationFrame(tick);
-                    }
-                }
-            }
+        // Call drawFrame function continuously
+        setInterval(drawFrame, 100);
+
+        // Function to display scanned data
+        function displayScannedData(data) {
+            document.getElementById('scanned-data').innerHTML = "<p>Scanned QR Code Data: " + data + "</p>";
+        }
+
+        // Function to send scanned data to Flask backend
+        function sendScannedData(data) {
+            // Send AJAX request to Flask backend
+            fetch('/process_scanned_data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ data: data }),
+            })
+            .then(response => {
+                // Handle response
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
         }
     </script>
 </body>
