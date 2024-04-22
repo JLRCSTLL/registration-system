@@ -5,29 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Code Scanner</title>
     <style>
-        .scanner-frame {
-            position: absolute;
-            border: 2px solid red; /* Adjust border color and width as needed */
-            pointer-events: none; /* Make the frame not clickable */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #001F5D; /* Background color */
+            color: #FFDE59; /* Default text color */
+        }
+        h1 {
+            text-align: center;
+            margin-top: 20px;
+            color: #FFDE59; /* Highlighted text color */
+        }
+        #preview {
+            display: block;
+            margin: 0 auto;
+            width: 50%;
+            height: 50vw; /* Set height equal to 50% of viewport width */
+            max-height: 50vh; /* Limit max height to 50% of viewport height */
+            object-fit: cover; /* Maintain aspect ratio and fill container */
+        }
+        #scanned-data {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 24px;
+        }
+        .name {
+            color: white; /* Name text color */
         }
     </style>
 </head>
 <body>
     <h1>Scan QR Code</h1>
-    <video id="preview" width="50%" height="50%"></video>
+    <video id="preview"></video>
     <canvas id="qr-canvas" style="display: none;"></canvas>
-
-    <!-- Add a frame that follows the QR code -->
-    <div id="frame" class="scanner-frame"></div>
-
     <div id="scanned-data"></div> <!-- Container to display scanned data -->
-
     <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
     <script>
         let scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
         scanner.addListener('scan', function (content) {
-            displayScannedData(content); // Call function to display scanned data
-            sendScannedData(content); // Call function to send scanned data to Flask backend
+            let scannedData = formatScannedData(content); // Format scanned data
+            displayScannedData(scannedData); // Call function to display scanned data
+            sendScannedData(scannedData); // Call function to send scanned data to Flask backend
         });
         Instascan.Camera.getCameras().then(function (cameras) {
             if (cameras.length > 0) {
@@ -39,35 +58,19 @@
             console.error(e);
         });
 
-        // Function to draw a frame around the QR code
-        function drawFrame() {
-            let video = document.getElementById('preview');
-            let frame = document.getElementById('frame');
-
-            // Calculate the size of the frame to fit just the QR code
-            let frameSize = Math.min(video.videoWidth, video.videoHeight) * 0.8; // Use 80% of video dimensions
-
-            // Calculate the position of the frame
-            let leftOffset = (video.videoWidth - frameSize) / 2;
-            let topOffset = (video.videoHeight - frameSize) / 2;
-
-            // Set the position and size of the frame
-            frame.style.left = leftOffset + 'px';
-            frame.style.top = topOffset + 'px';
-            frame.style.width = frameSize + 'px';
-            frame.style.height = frameSize + 'px';
-
-            // Resize the video element to a square
-            video.style.width = frameSize + 'px';
-            video.style.height = frameSize + 'px';
+        // Function to format scanned data
+        function formatScannedData(data) {
+            // Split the data into lines
+            let lines = data.split('\n');
+            let name = lines[0].replace('Name: ', '');
+            let organization = lines[1].replace('Organization: ', '');
+            return { 'Name': name, 'Organization': organization };
         }
-
-        // Call drawFrame function continuously
-        setInterval(drawFrame, 100);
 
         // Function to display scanned data
         function displayScannedData(data) {
-            document.getElementById('scanned-data').innerHTML = "<p>Scanned QR Code Data: " + data + "</p>";
+            let scannedDataContainer = document.getElementById('scanned-data');
+            scannedDataContainer.innerHTML = "<p>Welcome <span class='name'>" + data.Name + "</span>!</p>";
         }
 
         // Function to send scanned data to Flask backend

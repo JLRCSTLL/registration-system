@@ -1,83 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Interface</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-            margin: 0;
-            padding: 0;
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-top: 50px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-        tr:hover {
-            background-color: #f5f5f5;
-        }
-        .button {
-            background-color: #4CAF50;
-            border: none;
-            color: white;
-            padding: 8px 20px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            margin: 4px 2px;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-        .button:hover {
-            background-color: #45a049;
-        }
-        .qr-code {
-            max-width: 100px; /* Adjust the size of the QR code */
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Interface</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #001F5D; /* Background color */
+      margin: 0;
+      padding: 0;
+      color: #FFDE59; /* Default text color */
+    }
+
+    h1 {
+      color: #FFDE59; /* Highlighted text color */
+      text-align: center;
+      margin-top: 50px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #001F5D;
+    }
+
+    .button {
+      background-color: #FFDE59; /* Button background color */
+      border: none;
+      color: #001F5D; /* Text color on button */
+      padding: 8px 20px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      margin: 4px 2px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    /* Remove the :hover pseudo-class to prevent highlighting */
+    /* .button:hover {
+      background-color: #45a049;
+    } */
+
+    .qr-code {
+      max-width: 100px; /* Adjust the size of the QR code */
+    }
+
+    /* New style to change table body text color to white */
+    td {
+      color: white;
+    }
+  </style>
 </head>
 <body>
-    <h1>Participant Registrations</h1>
-    <a href="/scanner" class="button">Scan QR Code</a> <!-- New button -->
-    <form action="/admin" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".xlsx, .xls">
-        <input type="submit" value="Upload Excel" class="button">
-    </form>
-    <table>
-        <tr>
-            <th>Name</th>
-            <th>Organization</th>
-            <th>Phone</th>
-            <th>Email</th>
-            <th>QR Code</th> <!-- New column -->
-            <th>Action</th>
-        </tr>
-        {% for index, participant in data.iterrows() %}
-        <tr>
-            <td>{{ participant['Name'] }}</td>
-            <td>{{ participant['Organization'] }}</td>
-            <td>{{ participant['Phone'] }}</td>
-            <td>{{ participant['Email'] }}</td>
-            <td><img src="{{ url_for('static', filename=participant['QR_Code']) }}" alt="QR Code" class="qr-code"></td> <!-- Display the QR code -->
-            <td><a href="/delete/{{ index }}" class="button">Delete</a></td>
-        </tr>
-        {% endfor %}
-    </table>
+  <h1>Participant Registrations</h1>
+  <a href="/scanner" class="button">Scan QR Code</a> <form action="/admin" method="post" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".xlsx, .xls">
+    <input type="submit" value="Upload Excel" class="button">
+  </form>
+  <table>
+    <tr>
+      <th>Name</th>
+      <th>Organization</th>
+      <th>Phone</th>
+      <th>Email</th>
+      <th>QR Code</th> <th>Action</th>
+    </tr>
+    {% for index, participant in data.iterrows() %}
+    <tr>
+      <td>{{ participant['Name'] }}</td>
+      <td>{{ participant['Organization'] }}</td>
+      <td>{{ participant['Phone'] }}</td>
+      <td>{{ participant['Email'] }}</td>
+      <td><img src="{{ url_for('static', filename=participant['QR_Code']) }}" alt="QR Code" class="qr-code"></td> <td><a href="/delete/{{ index }}" class="button">Delete</a></td>
+    </tr>
+    {% endfor %}
+  </table>
 </body>
 </html>

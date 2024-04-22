@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 import os
 import pandas as pd
@@ -12,9 +13,6 @@ os.makedirs(output_dir, exist_ok=True)
 # Directory to store uploaded files
 app.config['UPLOAD_FOLDER'] = 'uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-
-# Global variable to store registration data
-registration_data = pd.DataFrame(columns=['Name', 'Organization', 'QR_Code'])  # Initialize as empty DataFrame
 
 # Define the allowed extensions for uploaded files
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
@@ -33,16 +31,17 @@ def register():
         
         # Append participant data to registration_data
         global registration_data
-        registration_data = registration_data.append(participant_data, ignore_index=True)
+        registration_data = pd.concat([registration_data, participant_data], ignore_index=True)
         
         return render_template('thank_you.html', qr_filename=qr_filename)
     return render_template('register.html')
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
-    global registration_data  # Declare registration_data as global
-    
     if request.method == 'POST':
+        # Global declaration of registration_data
+        global registration_data
+        
         # Handle file upload
         uploaded_file = request.files['file']
         if uploaded_file.filename != '':
@@ -75,7 +74,9 @@ def admin():
 
 @app.route('/delete/<int:index>', methods=['GET'])
 def delete_participant(index):
+    # Global declaration of registration_data
     global registration_data
+    
     registration_data = registration_data.drop(index)
     return redirect(url_for('admin'))
 
@@ -86,8 +87,31 @@ def scanner():
 @app.route('/process_scanned_data', methods=['POST'])
 def process_scanned_data():
     scanned_data = request.json.get('data')  # Get the scanned data from the request
-    # Process the scanned data as needed
-    return jsonify({'message': 'Scanned data received successfully'})
+    name = scanned_data['Name']
+    organization = scanned_data['Organization']
+    qr_code = ''  # Since it's a one-time scan, no need to store the QR code
+    
+    # Global declaration of registration_data
+    global registration_data
+    
+    # Check if the participant is already registered
+    if ((registration_data['Name'] == name) & (registration_data['Organization'] == organization)).any():
+        return jsonify({'message': 'Participant already registered'})
+    
+    # Record the time and date of the scan
+    scan_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Create a DataFrame for the scanned data
+    scanned_df = pd.DataFrame({'Name': [name], 'Organization': [organization], 'QR_Code': [qr_code], 'Scan_Time': [scan_time]})
+    
+    # Concatenate scanned data with registration_data
+    registration_data = pd.concat([registration_data, scanned_df], ignore_index=True)
+    
+    # Save registration data to Excel file
+    excel_filename = os.path.join(app.config['UPLOAD_FOLDER'], 'scanned_data.xlsx')
+    registration_data.to_excel(excel_filename, index=False)
+    
+    return jsonify({'message': 'Scanned data received and saved successfully'})
 
 def generate_qr_code(name, organization=''):
     # Construct participant information
@@ -112,6 +136,9 @@ def generate_qr_code(name, organization=''):
     
     # Return the filename
     return qr_filename
+
+# Global declaration of registration_data
+registration_data = pd.DataFrame(columns=['Name', 'Organization', 'QR_Code', 'Scan_Time'])
 
 if __name__ == '__main__':
     app.run(debug=True)
